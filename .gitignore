@@ -1,0 +1,70 @@
+## ---------------------------
+## Sistema operativo
+## ---------------------------
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+## ---------------------------
+## .NET / EventosVivos.back
+## ---------------------------
+bin/
+obj/
+out/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.dbmdl
+*.pdb
+
+# Resultados de pruebas
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
+
+# Publicación
+publish/
+*.pubxml.user
+
+## ---------------------------
+## Angular / EventosVivos.front
+## ---------------------------
+node_modules/
+dist/
+.angular/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+## ---------------------------
+## IDEs
+## ---------------------------
+.idea/
+.vs/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+## ---------------------------
+## Variables de entorno / secretos
+## ---------------------------
+.env
+!.env.example
+*.pfx
+appsettings.*.local.json
+
+## ---------------------------
+## Infraestructura (Terraform)
+## ---------------------------
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
