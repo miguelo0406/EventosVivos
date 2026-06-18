@@ -1,0 +1,184 @@
+/* ============================================================================
+   EventosVivos — Sistema de diseño (tokens de DESIGN.md)
+   North star: "las luces de sala bajando" — penumbra índigo + marquesina ámbar.
+   ============================================================================ */
+
+:root {
+  /* --- Marca: índigo de escenario (la sala) --- */
+  --brand: oklch(0.40 0.13 262);
+  --brand-strong: oklch(0.31 0.12 264);
+  --brand-soft: oklch(0.55 0.11 262);
+  --on-brand: oklch(0.98 0.01 262);
+
+  /* --- Acento: ámbar de marquesina (lo que importa AHORA: CTA) --- */
+  --accent: oklch(0.80 0.15 70);
+  --accent-strong: oklch(0.72 0.16 60);
+  --on-accent: oklch(0.25 0.06 60);
+
+  /* --- Neutros: la calidez la cargan marca y acento, no el fondo --- */
+  --bg: oklch(0.99 0.004 262);
+  --surface: oklch(0.975 0.012 262);
+  --surface-2: oklch(0.945 0.018 262);
+  --ink: oklch(0.23 0.03 264);
+  --ink-muted: oklch(0.50 0.03 264);
+  --border: oklch(0.89 0.014 262);
+  --border-strong: oklch(0.80 0.02 262);
+
+  /* --- Estados de reserva (información, no decoración) — par fondo/tinta --- */
+  --state-pending-bg: oklch(0.93 0.07 85);
+  --state-pending-ink: oklch(0.38 0.08 70);
+  --state-confirmed-bg: oklch(0.92 0.07 150);
+  --state-confirmed-ink: oklch(0.38 0.09 152);
+  --state-cancelled-bg: oklch(0.93 0.008 262);
+  --state-cancelled-ink: oklch(0.45 0.02 262);
+  --state-lost-bg: oklch(0.92 0.06 25);
+  --state-lost-ink: oklch(0.45 0.16 27);
+  --state-completed-bg: oklch(0.92 0.03 262);
+  --state-completed-ink: oklch(0.42 0.07 264);
+
+  /* --- Feedback --- */
+  --danger: oklch(0.55 0.18 27);
+  --danger-bg: oklch(0.95 0.04 27);
+
+  /* --- Tipografía --- */
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* --- Forma y ritmo --- */
+  --radius: 14px;
+  --radius-sm: 9px;
+  --radius-pill: 999px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-8: 3rem;
+  --maxw: 1120px;
+
+  /* The Flat-At-Rest Rule: la sombra aparece como respuesta a interacción, no en reposo. */
+  --shadow-hover: 0 10px 30px -12px oklch(0.40 0.13 262 / 0.35);
+  --shadow-focus: 0 0 0 3px oklch(0.80 0.15 70 / 0.45);
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  line-height: 1.55;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--space-3);
+  color: var(--ink);
+}
+
+h1 { font-size: clamp(2rem, 4vw, 3rem); }
+h2 { font-size: clamp(1.5rem, 2.6vw, 2.1rem); }
+h3 { font-size: 1.25rem; }
+
+a { color: var(--brand); text-underline-offset: 3px; }
+
+/* --- Layout helpers --- */
+.container { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 var(--space-5); }
+.stack > * + * { margin-top: var(--space-4); }
+
+/* --- Botones --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font: inherit;
+  font-weight: 600;
+  padding: 0.7rem 1.25rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+
+/* CTA de marquesina (ámbar): reservar, confirmar pago, entrar. */
+.btn-accent { background: var(--accent); color: var(--on-accent); }
+.btn-accent:not(:disabled):hover { background: var(--accent-strong); transform: translateY(-1px); box-shadow: var(--shadow-hover); }
+
+.btn-brand { background: var(--brand); color: var(--on-brand); }
+.btn-brand:not(:disabled):hover { background: var(--brand-strong); transform: translateY(-1px); }
+
+.btn-ghost { background: transparent; color: var(--ink); border-color: var(--border-strong); }
+.btn-ghost:not(:disabled):hover { background: var(--surface-2); }
+
+.btn-block { width: 100%; }
+
+/* --- Campos de formulario --- */
+.field { display: flex; flex-direction: column; gap: var(--space-2); }
+.field > label { font-size: 0.85rem; font-weight: 600; color: var(--ink-muted); }
+.input, select.input, textarea.input {
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.8rem;
+  transition: border-color 0.15s ease, box-shadow 0.18s ease;
+}
+.input:focus-visible, select.input:focus-visible, textarea.input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-focus);
+}
+
+/* --- Tarjetas (planas en reposo) --- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+}
+
+/* --- Badges de estado --- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+.badge::before { content: ""; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: currentColor; opacity: 0.9; }
+.badge-pendiente_pago { background: var(--state-pending-bg); color: var(--state-pending-ink); }
+.badge-confirmada { background: var(--state-confirmed-bg); color: var(--state-confirmed-ink); }
+.badge-cancelada { background: var(--state-cancelled-bg); color: var(--state-cancelled-ink); }
+.badge-perdida { background: var(--state-lost-bg); color: var(--state-lost-ink); }
+.badge-activo { background: var(--state-confirmed-bg); color: var(--state-confirmed-ink); }
+.badge-completado { background: var(--state-completed-bg); color: var(--state-completed-ink); }
+.badge-cancelado { background: var(--state-cancelled-bg); color: var(--state-cancelled-ink); }
+
+/* --- Mensajes --- */
+.alert { border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); font-size: 0.9rem; }
+.alert-error { background: var(--danger-bg); color: var(--danger); }
+
+.muted { color: var(--ink-muted); }
+.text-center { text-align: center; }
+
+/* Accesibilidad: respeta prefers-reduced-motion en toda animación. */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .btn:hover { transform: none; }
+}
