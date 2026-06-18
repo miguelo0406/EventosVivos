@@ -125,7 +125,11 @@ var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI(setupAction: swaggerUiOptions =>
-    swaggerUiOptions.SwaggerEndpoint(url: "/swagger/v1/swagger.json", name: "EventosVivos API v1"));
+{
+    swaggerUiOptions.SwaggerEndpoint(url: "/swagger/v1/swagger.json", name: "EventosVivos API v1");
+    // Swagger como página de inicio: evita el 404 al entrar a la raíz sin conocer la ruta /swagger.
+    swaggerUiOptions.RoutePrefix = string.Empty;
+});
 
 app.UseDomainExceptionHandling();
 app.UseCors(policyName: "AllowFrontend");

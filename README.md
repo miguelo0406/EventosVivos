@@ -57,7 +57,7 @@ referencia — no hay paso manual.
 | Servicio | URL | Notas |
 |----------|-----|-------|
 | Frontend | http://localhost:4200 | SPA Angular servida por nginx |
-| API + Swagger | http://localhost:8081/swagger | REST bajo `/api/...` |
+| API + Swagger | http://localhost:8081 | Swagger es la página de inicio; REST bajo `/api/...` |
 | Keycloak | http://localhost:8088 | Consola admin: `admin` / `admin` |
 | PostgreSQL | `localhost:5433` | Base `EventosVivosDb` |
 
@@ -84,9 +84,9 @@ extensión Angular Language Service para autocompletado y breakpoints en `.ts`).
 
 Angular 22 exige **Node 20.19+ o 22.12+**. Dos escenarios según lo que tengas instalado:
 
-- **Con nvm** (como en esta máquina): `nvm use 22` antes de `npm install` — el repo no fija un
+- **Con nvm**: `nvm use 22` antes de `npm install` — el repo no fija un
   `.nvmrc`, así que cualquier Node 20.19+/22.12+ que tengas activo sirve.
-- **Con solo Node instalado (sin nvm)**: corré `node -v` primero. Si es ≥ 20.19, no hace falta
+- **Con solo Node instalado (sin nvm)**: correr `node -v` primero. Si es ≥ 20.19, no hace falta
   nada más. Si es menor, instalá Node 22 LTS desde https://nodejs.org/ (instalador oficial,
   sin nvm) y reiniciá la terminal antes de `npm install`.
 
@@ -112,7 +112,7 @@ A partir de ahí, dos formas equivalentes de correrlo con debugger:
 
 - **Desde el IDE** (Visual Studio, Rider, VS Code con C# Dev Kit): abrir
   `EventosVivos.back/EventosVivos/EventosVivos.sln` (o la carpeta) y usar el botón de
-  ejecutar/depurar (▶) sobre el proyecto `EventosVivos.Api` — pone breakpoints en cualquier
+  ejecutar/depurar (▶) sobre el proyecto `EventosVivos.Api` — poner breakpoints en cualquier
   capa (Domain/Application/Infrastructure/Api) sin configuración adicional.
 - **Desde la terminal**: `dotnet run --project src/EventosVivos.Api` (sin debugger interactivo,
   útil para ver logs en vivo). API en `http://localhost:5000` o similar (puerto que asigne
@@ -352,7 +352,7 @@ El stack está desplegado y accesible públicamente:
 | Servicio | URL |
 |----------|-----|
 | **Front** | https://front.orangetree-9eda1e0d.eastus2.azurecontainerapps.io |
-| **API + Swagger** | https://api.orangetree-9eda1e0d.eastus2.azurecontainerapps.io/swagger |
+| **API + Swagger** | https://api.orangetree-9eda1e0d.eastus2.azurecontainerapps.io |
 | **Keycloak** | https://keycloak.orangetree-9eda1e0d.eastus2.azurecontainerapps.io |
 
 **Qué se creó**: un grupo de recursos (`rg-eventosvivos`) con Azure Container Registry,

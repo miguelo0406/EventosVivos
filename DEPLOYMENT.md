@@ -9,7 +9,7 @@ base de datos PostgreSQL administrada y los secretos centralizados en Key Vault.
 | Servicio | URL |
 |----------|-----|
 | Front | https://front.orangetree-9eda1e0d.eastus2.azurecontainerapps.io |
-| API + Swagger | https://api.orangetree-9eda1e0d.eastus2.azurecontainerapps.io/swagger |
+| API + Swagger | https://api.orangetree-9eda1e0d.eastus2.azurecontainerapps.io |
 | Keycloak | https://keycloak.orangetree-9eda1e0d.eastus2.azurecontainerapps.io |
 
 ---
