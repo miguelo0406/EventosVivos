@@ -4,10 +4,14 @@ namespace EventosVivos.Domain.Exceptions;
 // exceder el aforo del evento).
 public sealed class InsufficientTicketsAvailableException : DomainException
 {
-    public InsufficientTicketsAvailableException(int requestedQuantity, int availableTickets)
+    public InsufficientTicketsAvailableException(
+        int requestedQuantity,
+        int availableTickets
+    )
         : base(
             message: $"Solo quedan {availableTickets} entradas disponibles; se solicitaron {requestedQuantity}.",
-            errorCode: "INSUFFICIENT_TICKETS_AVAILABLE")
+            errorCode: "INSUFFICIENT_TICKETS_AVAILABLE"
+        )
     {
     }
 }

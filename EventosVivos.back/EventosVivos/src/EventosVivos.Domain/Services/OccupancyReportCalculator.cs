@@ -12,7 +12,8 @@ public static class OccupancyReportCalculator
     public static OccupancyReport Calculate(
         Event targetEvent,
         IEnumerable<Reservation> reservations,
-        DateTime currentTime)
+        DateTime currentTime
+    )
     {
         var reservationList = reservations.ToList();
 

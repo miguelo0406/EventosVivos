@@ -6,7 +6,8 @@ public sealed class InvalidEmailFormatException : DomainException
     public InvalidEmailFormatException(string invalidValue)
         : base(
             message: $"El email '{invalidValue}' no tiene un formato válido.",
-            errorCode: "INVALID_EMAIL_FORMAT")
+            errorCode: "INVALID_EMAIL_FORMAT"
+        )
     {
     }
 }

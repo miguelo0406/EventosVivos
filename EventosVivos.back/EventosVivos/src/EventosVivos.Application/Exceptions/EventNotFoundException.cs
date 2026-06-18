@@ -7,7 +7,8 @@ public sealed class EventNotFoundException : DomainException
     public EventNotFoundException(Guid eventId)
         : base(
             message: $"No se encontró el evento '{eventId}'.",
-            errorCode: "EVENT_NOT_FOUND")
+            errorCode: "EVENT_NOT_FOUND"
+        )
     {
     }
 }

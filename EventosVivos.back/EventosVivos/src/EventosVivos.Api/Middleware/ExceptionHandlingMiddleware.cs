@@ -1,12 +1,14 @@
+using EventosVivos.Api.Common;
 using EventosVivos.Application.Exceptions;
 using EventosVivos.Domain.Exceptions;
 
 namespace EventosVivos.Api.Middleware;
 
 // Adaptador transversal: traduce excepciones de dominio/aplicación a respuestas HTTP
-// consistentes. Responsabilidad única (S de SOLID): este es el único lugar de toda la
-// Api que decide el mapeo entre un tipo de excepción y un código HTTP; los
-// controllers quedan libres de try/catch repetitivo.
+// consistentes, envueltas en el mismo ApiResponse que usan los controllers.
+// Responsabilidad única (S de SOLID): este es el único lugar de toda la Api que decide
+// el mapeo entre un tipo de excepción y un código HTTP; los controllers quedan libres
+// de try/catch repetitivo.
 public sealed class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
@@ -40,18 +42,16 @@ public sealed class ExceptionHandlingMiddleware
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = MapToStatusCode(domainException: domainException);
 
-        object body = domainException is DomainValidationException validationException
-            ? new
-            {
-                errorCode = validationException.ErrorCode,
-                message = validationException.Message,
-                errors = validationException.Errors,
-            }
-            : new
-            {
-                errorCode = domainException.ErrorCode,
-                message = domainException.Message,
-            };
+        var error = new ApiError
+        {
+            Code = domainException.ErrorCode,
+            Message = domainException.Message,
+            Details = domainException is DomainValidationException validationException
+                ? validationException.Errors
+                : null,
+        };
+
+        var body = ApiResponse<object>.Failure(error: error, requestId: context.TraceIdentifier);
 
         return context.Response.WriteAsJsonAsync(body);
     }
@@ -61,19 +61,25 @@ public sealed class ExceptionHandlingMiddleware
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
-        return context.Response.WriteAsJsonAsync(new
+        var error = new ApiError
         {
-            errorCode = "INTERNAL_SERVER_ERROR",
-            message = "Ocurrió un error inesperado. Intenta nuevamente más tarde.",
-        });
+            Code = "INTERNAL_SERVER_ERROR",
+            Message = "Ocurrió un error inesperado. Intenta nuevamente más tarde.",
+        };
+
+        var body = ApiResponse<object>.Failure(error: error, requestId: context.TraceIdentifier);
+
+        return context.Response.WriteAsJsonAsync(body);
     }
 
     private static int MapToStatusCode(DomainException domainException) => domainException switch
     {
         DomainValidationException => StatusCodes.Status400BadRequest,
+        AuthenticationFailedException => StatusCodes.Status401Unauthorized,
         EventNotFoundException or VenueNotFoundException or ReservationNotFoundException => StatusCodes.Status404NotFound,
         VenueScheduleConflictException or InvalidReservationStateTransitionException or InvalidEventStateException
-            => StatusCodes.Status409Conflict,
+            or RegistrationFailedException or VenueInUseException
+            or VenueCapacityBelowScheduledEventException => StatusCodes.Status409Conflict,
         _ => StatusCodes.Status422UnprocessableEntity,
     };
 }

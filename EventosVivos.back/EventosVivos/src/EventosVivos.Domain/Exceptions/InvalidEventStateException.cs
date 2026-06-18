@@ -7,7 +7,8 @@ public sealed class InvalidEventStateException : DomainException
     public InvalidEventStateException(string message)
         : base(
             message: message,
-            errorCode: "INVALID_EVENT_STATE")
+            errorCode: "INVALID_EVENT_STATE"
+        )
     {
     }
 }

@@ -6,13 +6,25 @@ namespace EventosVivos.Domain.Ports;
 // Inversion aplicada en todos los puertos de Domain.
 public interface IReservationRepository
 {
-    Task<Reservation?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<Reservation?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken
+    );
 
-    Task<IReadOnlyList<Reservation>> GetByEventIdAsync(Guid eventId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Reservation>> GetByEventIdAsync(
+        Guid eventId,
+        CancellationToken cancellationToken
+    );
 
-    Task<bool> ExistsByConfirmationCodeAsync(string confirmationCode, CancellationToken cancellationToken);
+    Task<bool> ExistsByConfirmationCodeAsync(
+        string confirmationCode,
+        CancellationToken cancellationToken
+    );
 
-    Task AddAsync(Reservation reservation, CancellationToken cancellationToken);
+    Task AddAsync(
+        Reservation reservation,
+        CancellationToken cancellationToken
+    );
 
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

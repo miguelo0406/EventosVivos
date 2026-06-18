@@ -8,7 +8,8 @@ public sealed class DomainValidationException : DomainException
     public DomainValidationException(IReadOnlyCollection<string> errors)
         : base(
             message: "Se encontraron errores de validación.",
-            errorCode: "VALIDATION_ERROR")
+            errorCode: "VALIDATION_ERROR"
+        )
     {
         Errors = errors;
     }

@@ -16,6 +16,8 @@ public sealed class EventosVivosDbContext : DbContext
 
     public DbSet<Reservation> Reservations => Set<Reservation>();
 
+    public DbSet<User> Users => Set<User>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(EventosVivosDbContext).Assembly);

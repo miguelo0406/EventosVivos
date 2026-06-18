@@ -4,18 +4,43 @@ services:
     container_name: eventosvivos-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-eventosvivos}
+      POSTGRES_DB: ${POSTGRES_DB:-EventosVivosDb}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - eventosvivos-db-data:/var/lib/postgresql/data
+      # Crea la base 'keycloak' en el primer arranque del volumen (ver db-init/).
+      - ./db-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-eventosvivos}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-EventosVivosDb}"]
       interval: 5s
       timeout: 5s
       retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: eventosvivos-keycloak
+    restart: unless-stopped
+    command: ["start-dev", "--import-realm"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER:-postgres}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+    volumes:
+      - ./keycloak/import:/opt/keycloak/data/import:ro
+    ports:
+      - "${KEYCLOAK_PORT:-8088}:8080"
 
   api:
     build:
@@ -29,10 +54,31 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_HTTP_PORTS: 8080
-      ConnectionStrings__EventosVivosDatabase: "Host=db;Port=5432;Database=${POSTGRES_DB:-eventosvivos};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}"
+      ConnectionStrings__EventosVivosDatabase: "Host=db;Port=5432;Database=${POSTGRES_DB:-EventosVivosDb};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}"
       Cors__AllowedOrigins__0: ${FRONTEND_ORIGIN:-http://localhost:4200}
+      # Origen del front dockerizado (4200) + el de `ng serve` en desarrollo (4300).
+      Cors__AllowedOrigins__1: ${FRONTEND_DEV_ORIGIN:-http://localhost:4300}
+      # Keycloak: la API habla con Keycloak por la red interna de Docker (keycloak:8080).
+      Keycloak__Authority: "http://keycloak:8080/realms/eventosvivos"
+      Keycloak__BaseUrl: "http://keycloak:8080"
+      Keycloak__Realm: "eventosvivos"
+      Keycloak__ClientId: "eventosvivos-api"
+      Keycloak__ClientSecret: ${KEYCLOAK_CLIENT_SECRET:-eventosvivos-api-secret-dev}
+      Keycloak__RequireHttpsMetadata: "false"
     ports:
       - "${API_PORT:-8081}:8080"
+
+  front:
+    build:
+      context: ./EventosVivos.front/eventosvivos-web
+      dockerfile: Dockerfile
+    container_name: eventosvivos-front
+    restart: unless-stopped
+    depends_on:
+      - api
+    # nginx sirve la SPA; el navegador llama a la API por el puerto del host (8081).
+    ports:
+      - "${FRONT_PORT:-4200}:80"
 
 volumes:
   eventosvivos-db-data:

@@ -1,5 +1,8 @@
+using EventosVivos.Api.Common;
+using EventosVivos.Application.Commands.Reservations;
 using EventosVivos.Application.Dtos;
-using EventosVivos.Application.Ports;
+using EventosVivos.Application.Queries.Reservations;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventosVivos.Api.Controllers;
@@ -8,74 +11,103 @@ namespace EventosVivos.Api.Controllers;
 [Route("api/reservations")]
 public sealed class ReservationsController : ControllerBase
 {
-    private readonly IReserveTicketsUseCase _reserveTicketsUseCase;
-    private readonly IGetReservationByIdUseCase _getReservationByIdUseCase;
-    private readonly IConfirmReservationPaymentUseCase _confirmReservationPaymentUseCase;
-    private readonly ICancelReservationUseCase _cancelReservationUseCase;
+    private readonly IMediator _mediator;
 
-    public ReservationsController(
-        IReserveTicketsUseCase reserveTicketsUseCase,
-        IGetReservationByIdUseCase getReservationByIdUseCase,
-        IConfirmReservationPaymentUseCase confirmReservationPaymentUseCase,
-        ICancelReservationUseCase cancelReservationUseCase)
+    public ReservationsController(IMediator mediator)
     {
-        _reserveTicketsUseCase = reserveTicketsUseCase;
-        _getReservationByIdUseCase = getReservationByIdUseCase;
-        _confirmReservationPaymentUseCase = confirmReservationPaymentUseCase;
-        _cancelReservationUseCase = cancelReservationUseCase;
+        _mediator = mediator;
     }
 
     // RF-03.
     [HttpPost]
-    [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<ReservationResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult<ReservationResponse>> ReserveTickets(
+    public async Task<ActionResult<ApiResponse<ReservationResponse>>> ReserveTickets(
         [FromBody] ReserveTicketsRequest request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var response = await _reserveTicketsUseCase.ExecuteAsync(request: request, cancellationToken: cancellationToken);
+        var response = await _mediator.Send(
+            new ReserveTicketsCommand(Request: request),
+            cancellationToken
+        );
 
         return CreatedAtAction(
             actionName: nameof(GetReservationById),
             routeValues: new { id = response.Id },
-            value: response);
+            value: ApiResponse<ReservationResponse>.Success(
+                data: response,
+                requestId: HttpContext.TraceIdentifier
+            )
+        );
     }
 
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ReservationResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ReservationResponse>> GetReservationById(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<ReservationResponse>>> GetReservationById(
+        Guid id,
+        CancellationToken cancellationToken
+    )
     {
-        var response = await _getReservationByIdUseCase.ExecuteAsync(reservationId: id, cancellationToken: cancellationToken);
+        var response = await _mediator.Send(
+            new GetReservationByIdQuery(ReservationId: id),
+            cancellationToken
+        );
 
-        return Ok(response);
+        return Ok(
+            ApiResponse<ReservationResponse>.Success(
+                data: response,
+                requestId: HttpContext.TraceIdentifier
+            )
+        );
     }
 
     // RF-04.
     [HttpPost("{id:guid}/confirm-payment")]
-    [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ReservationResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<ReservationResponse>> ConfirmPayment(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<ReservationResponse>>> ConfirmPayment(
+        Guid id,
+        CancellationToken cancellationToken
+    )
     {
-        var response = await _confirmReservationPaymentUseCase.ExecuteAsync(
-            reservationId: id,
-            cancellationToken: cancellationToken);
+        var response = await _mediator.Send(
+            new ConfirmReservationPaymentCommand(ReservationId: id),
+            cancellationToken
+        );
 
-        return Ok(response);
+        return Ok(
+            ApiResponse<ReservationResponse>.Success(
+                data: response,
+                requestId: HttpContext.TraceIdentifier
+            )
+        );
     }
 
     // RF-05.
     [HttpPost("{id:guid}/cancel")]
-    [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ReservationResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<ReservationResponse>> CancelReservation(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<ReservationResponse>>> CancelReservation(
+        Guid id,
+        CancellationToken cancellationToken
+    )
     {
-        var response = await _cancelReservationUseCase.ExecuteAsync(reservationId: id, cancellationToken: cancellationToken);
+        var response = await _mediator.Send(
+            new CancelReservationCommand(ReservationId: id),
+            cancellationToken
+        );
 
-        return Ok(response);
+        return Ok(
+            ApiResponse<ReservationResponse>.Success(
+                data: response,
+                requestId: HttpContext.TraceIdentifier
+            )
+        );
     }
 }

@@ -1,27 +1,27 @@
-using EventosVivos.Application.Ports;
-using EventosVivos.Application.UseCases;
+using System.Reflection;
+using EventosVivos.Application.Services;
+using EventosVivos.Application.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EventosVivos.Application;
 
-// Composition root de Application: registra cada caso de uso detrás de su puerto de
-// entrada. Interface Segregation (I de SOLID): Api recibe exactamente el caso de uso
-// que necesita en cada controller, no una fachada gigante con todas las operaciones.
+// Composition root de Application. Registra MediatR (que descubre Commands, Queries y
+// sus Handlers por escaneo del ensamblado) y los servicios/facades detrás de su
+// interfaz. Interface Segregation (I de SOLID): cada handler recibe solo el servicio
+// que necesita, no una fachada monolítica.
 public static class ApplicationServiceCollectionExtensions
 {
-    public static IServiceCollection AddApplicationUseCases(this IServiceCollection services)
+    public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddScoped<ICreateEventUseCase, CreateEventUseCase>();
-        services.AddScoped<IListEventsUseCase, ListEventsUseCase>();
-        services.AddScoped<IGetEventByIdUseCase, GetEventByIdUseCase>();
-        services.AddScoped<ICancelEventUseCase, CancelEventUseCase>();
-        services.AddScoped<IReserveTicketsUseCase, ReserveTicketsUseCase>();
-        services.AddScoped<IConfirmReservationPaymentUseCase, ConfirmReservationPaymentUseCase>();
-        services.AddScoped<ICancelReservationUseCase, CancelReservationUseCase>();
-        services.AddScoped<IGetOccupancyReportUseCase, GetOccupancyReportUseCase>();
-        services.AddScoped<IListVenuesUseCase, ListVenuesUseCase>();
-        services.AddScoped<IGetReservationByIdUseCase, GetReservationByIdUseCase>();
-        services.AddScoped<IListReservationsByEventUseCase, ListReservationsByEventUseCase>();
+        var applicationAssembly = Assembly.GetExecutingAssembly();
+
+        services.AddMediatR(configuration =>
+            configuration.RegisterServicesFromAssembly(applicationAssembly));
+
+        services.AddScoped<IEventService, EventService>();
+        services.AddScoped<IReservationService, ReservationService>();
+        services.AddScoped<IVenueService, VenueService>();
+        services.AddScoped<IAuthService, AuthService>();
 
         return services;
     }

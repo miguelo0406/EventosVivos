@@ -22,4 +22,26 @@ public sealed class InMemoryVenueRepository : IVenueRepository
         IReadOnlyList<Venue> result = _venues.ToList();
         return Task.FromResult(result);
     }
+
+    public Task<int> GetMaxIdAsync(CancellationToken cancellationToken)
+    {
+        var maxId = _venues.Count == 0 ? 0 : _venues.Max(venue => venue.Id);
+        return Task.FromResult(maxId);
+    }
+
+    public Task AddAsync(Venue venue, CancellationToken cancellationToken)
+    {
+        _venues.Add(venue);
+        return Task.CompletedTask;
+    }
+
+    public void Remove(Venue venue)
+    {
+        _venues.Remove(venue);
+    }
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
 }

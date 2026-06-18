@@ -10,6 +10,8 @@ public sealed record EventSearchFilter
 
     public DateTime? FromStartDate { get; init; }
 
+    public DateTime? ToStartDate { get; init; }
+
     public int? VenueId { get; init; }
 
     public EventStatus? Status { get; init; }

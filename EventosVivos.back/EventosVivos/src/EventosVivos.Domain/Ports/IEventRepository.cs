@@ -8,15 +8,37 @@ namespace EventosVivos.Domain.Ports;
 // el detalle técnico (la base de datos) se adapta a él, y no al revés.
 public interface IEventRepository
 {
-    Task<Event?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<Event?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken
+    );
 
-    Task<IReadOnlyList<Event>> GetActiveEventsByVenueAsync(int venueId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Event>> GetActiveEventsByVenueAsync(
+        int venueId,
+        CancellationToken cancellationToken
+    );
+
+    // Para el guarda de borrado del CRUD de venues: ¿algún evento (de cualquier estado) apunta
+    // a este venue? La FK es Restrict, así que borrar un venue referenciado fallaría en BD.
+    Task<bool> AnyByVenueAsync(
+        int venueId,
+        CancellationToken cancellationToken
+    );
 
     // Recibe currentTime porque el filtro por estado "completado" (RN-06) es derivado:
     // se traduce a la condición SQL (Status == Active && EndDateTime < currentTime).
-    Task<IReadOnlyList<Event>> SearchAsync(EventSearchFilter filter, DateTime currentTime, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Event>> SearchAsync(
+        EventSearchFilter filter,
+        DateTime currentTime,
+        CancellationToken cancellationToken
+    );
 
-    Task AddAsync(Event eventToAdd, CancellationToken cancellationToken);
+    Task AddAsync(
+        Event eventToAdd,
+        CancellationToken cancellationToken
+    );
 
-    Task SaveChangesAsync(CancellationToken cancellationToken);
+    Task SaveChangesAsync(
+        CancellationToken cancellationToken
+    );
 }

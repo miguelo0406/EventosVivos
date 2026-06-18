@@ -18,23 +18,39 @@ public sealed class EventRepository : IEventRepository
         _dbContext = dbContext;
     }
 
-    public async Task<Event?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<Event?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken
+    )
     {
         return await _dbContext.Events
             .FirstOrDefaultAsync(eventEntity => eventEntity.Id == id, cancellationToken: cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Event>> GetActiveEventsByVenueAsync(int venueId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Event>> GetActiveEventsByVenueAsync(
+        int venueId,
+        CancellationToken cancellationToken
+    )
     {
         return await _dbContext.Events
             .Where(eventEntity => eventEntity.VenueId == venueId && eventEntity.Status == EventStatus.Active)
             .ToListAsync(cancellationToken: cancellationToken);
     }
 
+    public async Task<bool> AnyByVenueAsync(
+        int venueId,
+        CancellationToken cancellationToken
+    )
+    {
+        return await _dbContext.Events
+            .AnyAsync(eventEntity => eventEntity.VenueId == venueId, cancellationToken: cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Event>> SearchAsync(
         EventSearchFilter filter,
         DateTime currentTime,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var query = _dbContext.Events.AsQueryable();
 
@@ -46,6 +62,11 @@ public sealed class EventRepository : IEventRepository
         if (filter.FromStartDate.HasValue)
         {
             query = query.Where(eventEntity => eventEntity.StartDateTime >= filter.FromStartDate.Value);
+        }
+
+        if (filter.ToStartDate.HasValue)
+        {
+            query = query.Where(eventEntity => eventEntity.StartDateTime <= filter.ToStartDate.Value);
         }
 
         if (filter.VenueId.HasValue)
@@ -78,12 +99,17 @@ public sealed class EventRepository : IEventRepository
             .ToListAsync(cancellationToken: cancellationToken);
     }
 
-    public async Task AddAsync(Event eventToAdd, CancellationToken cancellationToken)
+    public async Task AddAsync(
+        Event eventToAdd,
+        CancellationToken cancellationToken
+    )
     {
         await _dbContext.Events.AddAsync(eventToAdd, cancellationToken);
     }
 
-    public async Task SaveChangesAsync(CancellationToken cancellationToken)
+    public async Task SaveChangesAsync(
+        CancellationToken cancellationToken
+    )
     {
         await _dbContext.SaveChangesAsync(cancellationToken);
     }

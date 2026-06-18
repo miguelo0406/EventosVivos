@@ -4,10 +4,14 @@ namespace EventosVivos.Domain.Exceptions;
 // ⇒ máx. 5 entradas). Se aplica siempre el límite más restrictivo.
 public sealed class TicketLimitExceededException : DomainException
 {
-    public TicketLimitExceededException(int requestedQuantity, int maxAllowed)
+    public TicketLimitExceededException(
+        int requestedQuantity,
+        int maxAllowed
+    )
         : base(
             message: $"La cantidad solicitada ({requestedQuantity}) excede el máximo permitido por transacción ({maxAllowed}).",
-            errorCode: "TICKET_LIMIT_EXCEEDED")
+            errorCode: "TICKET_LIMIT_EXCEEDED"
+        )
     {
     }
 }

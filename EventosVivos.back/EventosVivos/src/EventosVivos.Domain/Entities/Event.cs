@@ -52,7 +52,8 @@ public sealed class Event
         DateTime endDateTime,
         decimal ticketPrice,
         EventType type,
-        DateTime currentTime)
+        DateTime currentTime
+    )
     {
         List<string> validationErrors = [];
 
@@ -79,7 +80,7 @@ public sealed class Event
 
         // RN-03: eventos en fin de semana no pueden iniciar después de las 22:00.
         var isWeekendNight = startDateTime.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday
-            && startDateTime.Hour >= WeekendLatestStartHour;
+                             && startDateTime.Hour >= WeekendLatestStartHour;
         if (isWeekendNight)
         {
             throw new WeekendNightRestrictionException(startDateTime: startDateTime);
@@ -135,6 +136,7 @@ public sealed class Event
     private static void ValidateTitle(string title, List<string> errors)
     {
         var trimmedLength = title?.Trim().Length ?? 0;
+
         if (trimmedLength < MinTitleLength || trimmedLength > MaxTitleLength)
         {
             errors.Add($"El título debe tener entre {MinTitleLength} y {MaxTitleLength} caracteres.");
@@ -144,6 +146,7 @@ public sealed class Event
     private static void ValidateDescription(string description, List<string> errors)
     {
         var trimmedLength = description?.Trim().Length ?? 0;
+
         if (trimmedLength < MinDescriptionLength || trimmedLength > MaxDescriptionLength)
         {
             errors.Add($"La descripción debe tener entre {MinDescriptionLength} y {MaxDescriptionLength} caracteres.");
@@ -162,7 +165,8 @@ public sealed class Event
         DateTime startDateTime,
         DateTime endDateTime,
         DateTime currentTime,
-        List<string> errors)
+        List<string> errors
+    )
     {
         if (startDateTime <= currentTime)
         {
@@ -175,7 +179,10 @@ public sealed class Event
         }
     }
 
-    private static void ValidatePrice(decimal ticketPrice, List<string> errors)
+    private static void ValidatePrice(
+        decimal ticketPrice,
+        List<string> errors
+    )
     {
         if (ticketPrice <= 0)
         {

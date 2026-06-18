@@ -5,7 +5,11 @@ namespace EventosVivos.Application.Mapping;
 
 public static class EventResponseMapper
 {
-    public static EventResponse ToResponse(Event targetEvent, Venue venue, DateTime currentTime)
+    public static EventResponse ToResponse(
+        Event targetEvent,
+        Venue venue,
+        DateTime currentTime
+    )
     {
         return new()
         {

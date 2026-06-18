@@ -26,6 +26,11 @@ public sealed class InMemoryEventRepository : IEventRepository
         return Task.FromResult(result);
     }
 
+    public Task<bool> AnyByVenueAsync(int venueId, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(_events.Any(eventEntity => eventEntity.VenueId == venueId));
+    }
+
     public Task<IReadOnlyList<Event>> SearchAsync(
         EventSearchFilter filter,
         DateTime currentTime,
@@ -46,6 +51,11 @@ public sealed class InMemoryEventRepository : IEventRepository
         if (filter.FromStartDate.HasValue)
         {
             query = query.Where(eventEntity => eventEntity.StartDateTime >= filter.FromStartDate.Value);
+        }
+
+        if (filter.ToStartDate.HasValue)
+        {
+            query = query.Where(eventEntity => eventEntity.StartDateTime <= filter.ToStartDate.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(filter.TitleSearch))

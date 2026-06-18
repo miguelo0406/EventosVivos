@@ -13,7 +13,8 @@ public static class VenueScheduleConflictChecker
     public static bool HasConflict(
         DateTime candidateStart,
         DateTime candidateEnd,
-        IEnumerable<Event> existingActiveEventsAtVenue)
+        IEnumerable<Event> existingActiveEventsAtVenue
+    )
     {
         return existingActiveEventsAtVenue.Any(existingEvent =>
             candidateStart < existingEvent.EndDateTime && existingEvent.StartDateTime < candidateEnd);

@@ -5,7 +5,10 @@ namespace EventosVivos.Domain.Exceptions;
 // controlados (5xx) mediante un único middleware de manejo de excepciones.
 public abstract class DomainException : Exception
 {
-    protected DomainException(string message, string errorCode)
+    protected DomainException(
+        string message,
+        string errorCode
+    )
         : base(message)
     {
         ErrorCode = errorCode;

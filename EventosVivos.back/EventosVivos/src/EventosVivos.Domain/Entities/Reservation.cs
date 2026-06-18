@@ -19,6 +19,10 @@ public sealed class Reservation
 
     public int Quantity { get; private set; }
 
+    // Snapshot del comprador en el momento de la reserva, no FK a User. Así el registro
+    // persiste históricamente (auditoría, reportes de ocupación) aunque el usuario cambie
+    // email, se elimine de Keycloak, o no se registre nunca en el sistema. Una reserva
+    // captura "quién pagó en ese momento", no "quién es el usuario ahora".
     public string BuyerName { get; private set; } = string.Empty;
 
     public Email BuyerEmail { get; private set; } = null!;

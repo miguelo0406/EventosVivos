@@ -7,7 +7,8 @@ public sealed class InvalidReservationStateTransitionException : DomainException
     public InvalidReservationStateTransitionException(string message)
         : base(
             message: message,
-            errorCode: "INVALID_RESERVATION_STATE_TRANSITION")
+            errorCode: "INVALID_RESERVATION_STATE_TRANSITION"
+        )
     {
     }
 }
