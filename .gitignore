@@ -57,6 +57,13 @@ yarn-error.log*
 !.env.example
 *.pfx
 appsettings.*.local.json
+secrets.json
+AZSecrets
+
+## ---------------------------
+## Contexto de agente (no debe versionarse)
+## ---------------------------
+CLAUDE.md
 
 ## ---------------------------
 ## Infraestructura (Terraform)

@@ -132,44 +132,193 @@ Container Apps) + `AcrPush` sobre `acreventosvivos` (para subir imágenes).
 
 ---
 
-## Reproducir el despliegue desde cero (resumen de comandos)
+## Reproducir el despliegue desde cero (comandos completos)
 
-Asume Azure CLI autenticado (`az login`) y un grupo de recursos ya creado.
+Asume Azure CLI autenticado (`az login`) sobre la suscripción correcta.
+
+### Fase 0 — Recursos base
+
+El grupo de recursos, ACR, PostgreSQL, Key Vault y el Container Apps Environment se crearon
+desde el **Portal de Azure** (no por CLI) en este despliegue concreto — los comandos `az`
+equivalentes, para reproducirlo sin Portal, son:
 
 ```bash
-# Registry
+az group create -n rg-eventosvivos -l eastus
+
 az acr create -n acreventosvivos -g rg-eventosvivos --sku Basic
 
-# Postgres (Burstable B1ms, free tier) — ajustar región si hay error de capacidad
+# Burstable B1ms (free tier 12 meses) — East US 2 por capacidad regional (East US dio
+# "La suscripción no se puede aprovisionar..." al intentarlo ahí)
 az postgres flexible-server create -n eventosvivos-pg -g rg-eventosvivos \
   --location eastus2 --sku-name Standard_B1ms --tier Burstable \
-  --storage-size 32 --version 16 --public-access 0.0.0.0
+  --storage-size 32 --version 16 --public-access 0.0.0.0 \
+  --admin-user evadmin --admin-password "<password-seguro>"
 az postgres flexible-server db create -s eventosvivos-pg -g rg-eventosvivos -d EventosVivosDb
 az postgres flexible-server db create -s eventosvivos-pg -g rg-eventosvivos -d keycloak
 
-# Key Vault (modelo RBAC) + secretos
-az keyvault create -n kv-eventosvivos -g rg-eventosvivos --location eastus2 --enable-rbac-authorization true
-# asignar a tu propia cuenta el rol "Key Vault Secrets Officer" antes de poder crear secretos
-az keyvault secret set --vault-name kv-eventosvivos --name eventosvivos-db-connection --value "..."
-az keyvault secret set --vault-name kv-eventosvivos --name keycloak-client-secret --value "..."
+az keyvault create -n kv-eventosvivos -g rg-eventosvivos --location eastus2 \
+  --enable-rbac-authorization true
+# tu propia cuenta necesita el rol de PLANO DE DATOS "Key Vault Secrets Officer" (no
+# "Key Vault Data Access Administrator", que es de plano de gestión) antes de poder
+# crear secretos — ver "Gotchas" arriba
+az keyvault secret set --vault-name kv-eventosvivos --name pg-admin-password --value "<...>"
+az keyvault secret set --vault-name kv-eventosvivos --name keycloak-db-password --value "<...>"
+az keyvault secret set --vault-name kv-eventosvivos --name keycloak-admin-password --value "<...>"
+az keyvault secret set --vault-name kv-eventosvivos --name eventosvivos-db-connection \
+  --value "Host=eventosvivos-pg.postgres.database.azure.com;Port=5432;Database=EventosVivosDb;Username=evadmin;Password=<...>;Ssl Mode=Require;Trust Server Certificate=true"
+az keyvault secret set --vault-name kv-eventosvivos --name keycloak-client-secret --value "<...>"
 
-# Container Apps Environment
 az containerapp env create -n cae-eventosvivos -g rg-eventosvivos --location eastus2
-
-# Build de las 3 imágenes (build remoto, sin Docker local)
-az acr build --registry acreventosvivos --image eventosvivos-keycloak:latest --file keycloak/Dockerfile .
-az acr build --registry acreventosvivos --image eventosvivos-api:latest --file EventosVivos.back/EventosVivos/Dockerfile EventosVivos.back/EventosVivos
-# (el Front necesita la URL real de la API horneada en environment.ts antes de este build)
-az acr build --registry acreventosvivos --image eventosvivos-front:latest --file EventosVivos.front/eventosvivos-web/Dockerfile EventosVivos.front/eventosvivos-web
-
-# Container Apps (con identidad administrada para ACR pull + Key Vault)
-az containerapp create -n keycloak -g rg-eventosvivos --environment cae-eventosvivos \
-  --image acreventosvivos.azurecr.io/eventosvivos-keycloak:latest \
-  --target-port 8080 --ingress external --registry-server acreventosvivos.azurecr.io \
-  --registry-identity system --system-assigned
-# (api y front siguen el mismo patrón, con ConnectionStrings/Keycloak__* como secretref a Key Vault)
+# anota el dominio público — se necesita para los 3 Container Apps de las siguientes fases
+az containerapp env show -n cae-eventosvivos -g rg-eventosvivos --query properties.defaultDomain -o tsv
 ```
 
-Para el flujo completo paso a paso (incluyendo los roles RBAC exactos y la configuración de
-cada Container App), ver el historial de comandos `az` ejecutados en este repositorio o
-contactar al autor.
+### Fase 1 — Keycloak
+
+```bash
+az acr build --registry acreventosvivos --image eventosvivos-keycloak:latest \
+  --file keycloak/Dockerfile .
+
+az containerapp create \
+  --name keycloak --resource-group rg-eventosvivos --environment cae-eventosvivos \
+  --image acreventosvivos.azurecr.io/eventosvivos-keycloak:latest \
+  --target-port 8080 --ingress external \
+  --registry-server acreventosvivos.azurecr.io --registry-identity system \
+  --system-assigned --min-replicas 1 --max-replicas 1
+
+# RBAC: la identidad administrada del Container App necesita poder leer Key Vault
+KC_PRINCIPAL_ID=$(az containerapp show -n keycloak -g rg-eventosvivos --query identity.principalId -o tsv)
+KV_ID=$(az keyvault show -n kv-eventosvivos -g rg-eventosvivos --query id -o tsv)
+az role assignment create --assignee "$KC_PRINCIPAL_ID" --role "Key Vault Secrets User" --scope "$KV_ID"
+
+# Secretos referenciados (nunca el valor en claro en la definición del Container App)
+KC_DB_PW_URI=$(az keyvault secret show --vault-name kv-eventosvivos --name keycloak-db-password --query id -o tsv)
+KC_ADMIN_PW_URI=$(az keyvault secret show --vault-name kv-eventosvivos --name keycloak-admin-password --query id -o tsv)
+az containerapp secret set --name keycloak --resource-group rg-eventosvivos \
+  --secrets \
+    kc-db-password="keyvaultref:${KC_DB_PW_URI},identityref:system" \
+    kc-admin-password="keyvaultref:${KC_ADMIN_PW_URI},identityref:system"
+
+az containerapp update --name keycloak --resource-group rg-eventosvivos \
+  --set-env-vars \
+    KC_DB=postgres \
+    "KC_DB_URL=jdbc:postgresql://eventosvivos-pg.postgres.database.azure.com:5432/keycloak?sslmode=require" \
+    KC_DB_USERNAME=evadmin \
+    KC_DB_PASSWORD=secretref:kc-db-password \
+    KC_HOSTNAME=https://keycloak.orangetree-9eda1e0d.eastus2.azurecontainerapps.io \
+    KC_PROXY_HEADERS=xforwarded \
+    KC_HTTP_ENABLED=true \
+    KC_HOSTNAME_STRICT=false \
+    KC_HEALTH_ENABLED=true \
+    KC_BOOTSTRAP_ADMIN_USERNAME=admin \
+    KC_BOOTSTRAP_ADMIN_PASSWORD=secretref:kc-admin-password
+
+# Verificar: debe responder un JSON con el "issuer" correcto
+curl -s https://keycloak.orangetree-9eda1e0d.eastus2.azurecontainerapps.io/realms/eventosvivos/.well-known/openid-configuration
+```
+
+### Fase 2 — API
+
+```bash
+az acr build --registry acreventosvivos --image eventosvivos-api:latest \
+  --file EventosVivos.back/EventosVivos/Dockerfile EventosVivos.back/EventosVivos
+
+az containerapp create \
+  --name api --resource-group rg-eventosvivos --environment cae-eventosvivos \
+  --image acreventosvivos.azurecr.io/eventosvivos-api:latest \
+  --target-port 8080 --ingress external \
+  --registry-server acreventosvivos.azurecr.io --registry-identity system \
+  --system-assigned --min-replicas 1 --max-replicas 1 \
+  --env-vars \
+    ASPNETCORE_ENVIRONMENT=Production \
+    ASPNETCORE_HTTP_PORTS=8080 \
+    Cors__AllowedOrigins__0=https://front.orangetree-9eda1e0d.eastus2.azurecontainerapps.io \
+    Keycloak__Authority=https://keycloak.orangetree-9eda1e0d.eastus2.azurecontainerapps.io/realms/eventosvivos \
+    Keycloak__BaseUrl=https://keycloak.orangetree-9eda1e0d.eastus2.azurecontainerapps.io \
+    Keycloak__Realm=eventosvivos \
+    Keycloak__ClientId=eventosvivos-api \
+    Keycloak__RequireHttpsMetadata=true
+
+API_PRINCIPAL_ID=$(az containerapp show -n api -g rg-eventosvivos --query identity.principalId -o tsv)
+az role assignment create --assignee "$API_PRINCIPAL_ID" --role "Key Vault Secrets User" --scope "$KV_ID"
+
+DB_CONN_URI=$(az keyvault secret show --vault-name kv-eventosvivos --name eventosvivos-db-connection --query id -o tsv)
+KC_SECRET_URI=$(az keyvault secret show --vault-name kv-eventosvivos --name keycloak-client-secret --query id -o tsv)
+az containerapp secret set --name api --resource-group rg-eventosvivos \
+  --secrets \
+    db-connection="keyvaultref:${DB_CONN_URI},identityref:system" \
+    keycloak-client-secret="keyvaultref:${KC_SECRET_URI},identityref:system"
+
+az containerapp update --name api --resource-group rg-eventosvivos \
+  --set-env-vars \
+    ConnectionStrings__EventosVivosDatabase=secretref:db-connection \
+    Keycloak__ClientSecret=secretref:keycloak-client-secret
+
+# Verificar: 200 y las migraciones de EF Core aplicadas (ver logs)
+curl -s -o /dev/null -w "%{http_code}\n" https://api.orangetree-9eda1e0d.eastus2.azurecontainerapps.io/
+az containerapp logs show -n api -g rg-eventosvivos --tail 40
+```
+
+### Fase 3 — Front
+
+El Front es una SPA estática: la URL real de la API se hornea en el bundle JS **antes** del
+build de la imagen (no hay `fileReplacements` en `angular.json` — ver "Gotchas" arriba).
+
+```bash
+# hornear la URL real de la API en environment.ts, build, y revertir a localhost
+sed -i '' "s#http://localhost:8081/api#https://api.orangetree-9eda1e0d.eastus2.azurecontainerapps.io/api#" \
+  EventosVivos.front/eventosvivos-web/src/environments/environment.ts
+
+az acr build --registry acreventosvivos --image eventosvivos-front:latest \
+  --file EventosVivos.front/eventosvivos-web/Dockerfile EventosVivos.front/eventosvivos-web
+
+# revertir environment.ts a localhost (el repo no debe quedar apuntando a producción)
+git checkout -- EventosVivos.front/eventosvivos-web/src/environments/environment.ts
+
+az containerapp create \
+  --name front --resource-group rg-eventosvivos --environment cae-eventosvivos \
+  --image acreventosvivos.azurecr.io/eventosvivos-front:latest \
+  --target-port 80 --ingress external \
+  --registry-server acreventosvivos.azurecr.io --registry-identity system \
+  --system-assigned --min-replicas 1 --max-replicas 1
+
+# Verificar: 200 y que el bundle JS NO contenga "localhost:8081"
+curl -s -o /dev/null -w "%{http_code}\n" https://front.orangetree-9eda1e0d.eastus2.azurecontainerapps.io/
+```
+
+### Fase 4 — CI/CD (OIDC federado para GitHub Actions)
+
+```bash
+APP_JSON=$(az ad app create --display-name "eventosvivos-github-actions" --query "{appId:appId, id:id}" -o json)
+APP_ID=$(echo "$APP_JSON" | jq -r .appId)
+APP_OBJECT_ID=$(echo "$APP_JSON" | jq -r .id)
+SP_OBJECT_ID=$(az ad sp create --id "$APP_ID" --query id -o tsv)
+
+# credencial federada: solo confía en push a la rama main de este repo exacto
+cat > federated-credential.json <<EOF
+{
+  "name": "github-actions-main",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:miguelo0406/EventosVivos:ref:refs/heads/main",
+  "description": "GitHub Actions push a main",
+  "audiences": ["api://AzureADTokenExchange"]
+}
+EOF
+az ad app federated-credential create --id "$APP_OBJECT_ID" --parameters federated-credential.json
+rm federated-credential.json
+
+RG_ID=$(az group show -n rg-eventosvivos --query id -o tsv)
+ACR_ID=$(az acr show -n acreventosvivos -g rg-eventosvivos --query id -o tsv)
+az role assignment create --assignee-object-id "$SP_OBJECT_ID" --assignee-principal-type ServicePrincipal \
+  --role "Contributor" --scope "$RG_ID"
+az role assignment create --assignee-object-id "$SP_OBJECT_ID" --assignee-principal-type ServicePrincipal \
+  --role "AcrPush" --scope "$ACR_ID"
+
+# variables del repo (no son secretas, son IDs públicos de la identidad federada)
+gh variable set AZURE_CLIENT_ID --body "$APP_ID" --repo miguelo0406/EventosVivos
+gh variable set AZURE_TENANT_ID --body "$(az account show --query tenantId -o tsv)" --repo miguelo0406/EventosVivos
+gh variable set AZURE_SUBSCRIPTION_ID --body "$(az account show --query id -o tsv)" --repo miguelo0406/EventosVivos
+```
+
+A partir de aquí, cada `git push` a `main` dispara `.github/workflows/deploy.yml`
+(`test-api` → 3 builds en paralelo → `deploy`), sin más pasos manuales.
