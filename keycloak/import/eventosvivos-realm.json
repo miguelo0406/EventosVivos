@@ -1,0 +1,73 @@
+{
+  "realm": "eventosvivos",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 300,
+  "ssoSessionMaxLifespan": 28800,
+  "revokeRefreshToken": false,
+
+  "roles": {
+    "realm": [
+      { "name": "attendee", "description": "Asistente: navega catálogo y reserva entradas." },
+      { "name": "organizer", "description": "Organizador: gestiona eventos y reportes." }
+    ]
+  },
+
+  "clients": [
+    {
+      "clientId": "eventosvivos-api",
+      "name": "EventosVivos API (backend)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "eventosvivos-api-secret-dev",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "fullScopeAllowed": true,
+      "webOrigins": ["*"],
+      "redirectUris": [],
+      "attributes": {
+        "access.token.lifespan": "300"
+      }
+    }
+  ],
+
+  "users": [
+    {
+      "username": "organizador@eventosvivos.com",
+      "email": "organizador@eventosvivos.com",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "Organizador",
+      "credentials": [{ "type": "password", "value": "Passw0rd!", "temporary": false }],
+      "realmRoles": ["organizer"]
+    },
+    {
+      "username": "asistente@eventosvivos.com",
+      "email": "asistente@eventosvivos.com",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "Asistente",
+      "credentials": [{ "type": "password", "value": "Passw0rd!", "temporary": false }],
+      "realmRoles": ["attendee"]
+    },
+    {
+      "username": "service-account-eventosvivos-api",
+      "enabled": true,
+      "serviceAccountClientId": "eventosvivos-api",
+      "clientRoles": {
+        "realm-management": ["manage-users", "view-users", "query-users"]
+      }
+    }
+  ]
+}

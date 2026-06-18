@@ -1,0 +1,91 @@
+name: Deploy a Azure
+
+# CI/CD: en cada push a main se reconstruyen las 3 imágenes y se actualizan los
+# Container Apps correspondientes. Sin secretos de larga duración: autenticación
+# vía OIDC federado (azure/login confía en el token que emite GitHub Actions).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ACR_NAME: acreventosvivos
+  RESOURCE_GROUP: rg-eventosvivos
+  API_PUBLIC_URL: https://api.orangetree-9eda1e0d.eastus2.azurecontainerapps.io
+
+jobs:
+  build-keycloak:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Build y push imagen Keycloak
+        run: |
+          az acr build --registry $ACR_NAME \
+            --image eventosvivos-keycloak:${{ github.sha }} \
+            --image eventosvivos-keycloak:latest \
+            --file keycloak/Dockerfile .
+
+  build-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Build y push imagen API
+        run: |
+          az acr build --registry $ACR_NAME \
+            --image eventosvivos-api:${{ github.sha }} \
+            --image eventosvivos-api:latest \
+            --file EventosVivos.back/EventosVivos/Dockerfile \
+            EventosVivos.back/EventosVivos
+
+  build-front:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Hornear la URL pública de la API en environment.ts
+        run: |
+          sed -i "s#http://localhost:8081/api#${API_PUBLIC_URL}/api#" \
+            EventosVivos.front/eventosvivos-web/src/environments/environment.ts
+      - name: Build y push imagen Front
+        run: |
+          az acr build --registry $ACR_NAME \
+            --image eventosvivos-front:${{ github.sha }} \
+            --image eventosvivos-front:latest \
+            --file EventosVivos.front/eventosvivos-web/Dockerfile \
+            EventosVivos.front/eventosvivos-web
+
+  deploy:
+    needs: [build-keycloak, build-api, build-front]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Actualizar los 3 Container Apps con las imágenes recién construidas
+        run: |
+          az containerapp update -n keycloak -g $RESOURCE_GROUP \
+            --image $ACR_NAME.azurecr.io/eventosvivos-keycloak:${{ github.sha }}
+          az containerapp update -n api -g $RESOURCE_GROUP \
+            --image $ACR_NAME.azurecr.io/eventosvivos-api:${{ github.sha }}
+          az containerapp update -n front -g $RESOURCE_GROUP \
+            --image $ACR_NAME.azurecr.io/eventosvivos-front:${{ github.sha }}
