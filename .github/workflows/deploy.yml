@@ -18,6 +18,16 @@ env:
   API_PUBLIC_URL: https://api.orangetree-9eda1e0d.eastus2.azurecontainerapps.io
 
 jobs:
+  test-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Ejecutar pruebas unitarias y de aplicación de la API
+        run: dotnet test EventosVivos.back/EventosVivos --configuration Release
+
   build-keycloak:
     runs-on: ubuntu-latest
     steps:
@@ -72,8 +82,10 @@ jobs:
             --file EventosVivos.front/eventosvivos-web/Dockerfile \
             EventosVivos.front/eventosvivos-web
 
+  # El deploy exige que test-api haya pasado: si una sola prueba falla, GitHub Actions
+  # no ejecuta este job y los Container Apps no se tocan (se rechaza el despliegue).
   deploy:
-    needs: [build-keycloak, build-api, build-front]
+    needs: [test-api, build-keycloak, build-api, build-front]
     runs-on: ubuntu-latest
     steps:
       - uses: azure/login@v2
