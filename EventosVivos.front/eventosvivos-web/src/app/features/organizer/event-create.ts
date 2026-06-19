@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { EventsService } from '../../core/services/events.service';
@@ -100,7 +100,9 @@ import { EventType, VenueResponse } from '../../core/models/catalog.model';
       <div class="field">
         <label for="start">Inicio</label>
         <input id="start" class="input" type="datetime-local" [min]="minDateTime" formControlName="startLocal" />
-        @if (invalid('startLocal')) {
+        @if (form.controls.startLocal.touched && form.controls.startLocal.hasError('weekendNight')) {
+          <small class="err">Sábado o domingo no puede iniciar a las 22:00 o después, en tu hora local (RN-03).</small>
+        } @else if (invalid('startLocal')) {
           <small class="err">Indica la fecha y hora de inicio.</small>
         }
       </div>
@@ -178,6 +180,26 @@ import { EventType, VenueResponse } from '../../core/models/catalog.model';
   ],
 })
 export class EventCreateComponent {
+  // RN-03 se evalúa contra la hora del reloj del organizador (RN-03), pero el backend compara
+  // el DateTime ya convertido a UTC un fin de semana tarde en la noche puede cruzar la medianoche UTC y "escaparse"
+  // de esa validación. Se replica la regla aquí, sobre el valor que el usuario realmente ve en
+  // el input datetime-local (hora local, sin convertir), para que el organizador no pueda
+  // siquiera enviar un horario que viola RN-03.
+  private static readonly WeekendLatestStartHour = 22;
+
+  private static weekendNightValidator(control: AbstractControl<string>): ValidationErrors | null {
+    if (!control.value) {
+      return null;
+    }
+
+    const localStart = new Date(control.value);
+    const isWeekend = localStart.getDay() === 0 || localStart.getDay() === 6;
+
+    return isWeekend && localStart.getHours() >= EventCreateComponent.WeekendLatestStartHour
+      ? { weekendNight: true }
+      : null;
+  }
+
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly eventsService = inject(EventsService);
@@ -200,7 +222,7 @@ export class EventCreateComponent {
     venueId: this.fb.control<number | null>(null, [Validators.required]),
     maxCapacity: this.fb.control<number | null>(null, [Validators.required, Validators.min(1)]),
     ticketPrice: this.fb.control<number | null>(null, [Validators.required, Validators.min(0.01)]),
-    startLocal: this.fb.nonNullable.control('', [Validators.required]),
+    startLocal: this.fb.nonNullable.control('', [Validators.required, EventCreateComponent.weekendNightValidator]),
     endLocal: this.fb.nonNullable.control('', [Validators.required]),
   });
 
